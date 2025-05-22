@@ -4,7 +4,7 @@ A collection of Python tools for domain and subdomain analysis, status checking,
 
 ## 📋 Available Scripts
 
-### 1. [Subdomain Status Checker](./docs/subdomain-status-checker.md) 🌐
+### 1. [Subdomain Status Checker](./subdomain_status.md) 🌐
 **File:** `Subdomain_status_checker.py`
 
 A Python tool for identifying active subdomains and detecting dangling DNS records.
