@@ -68,15 +68,16 @@ def ping_domain(domain, timeout=3):
     except Exception as e:
         return f'ERROR: {str(e)}', 'Unknown'
 
-def process_single_domain(domain_url):
-    """Process a single domain and return result"""
+def process_single_domain_with_index(domain_url_with_index):
+    """Process a single domain and return result with original index"""
+    index, domain_url = domain_url_with_index
     domain = extract_domain_from_url(domain_url)
     
     if not domain:
-        return domain_url, 'ERROR (Invalid Domain)', 'N/A'
+        return index, domain_url, 'ERROR (Invalid Domain)', 'N/A'
     
     status, ip = ping_domain(domain)
-    return domain, status, ip
+    return index, domain, status, ip
 
 def load_domains_from_file(filename):
     """Load domains from file, filtering out empty lines"""
@@ -141,7 +142,7 @@ def save_results_to_csv(results, filename='subdomain_ping_results.csv'):
             # Write header
             writer.writerow(['Subdomain', 'Status', 'IP Address'])
             
-            # Write results
+            # Write results (maintaining original order)
             for domain, status, ip in results:
                 writer.writerow([domain, status, ip])
                 
@@ -272,29 +273,33 @@ def main():
     
     print(f"Found {len(domains)} domains to check")
     
-    # Process domains
-    results = []
+    # Process domains while preserving original order
+    results_dict = {}  # Store results by index to maintain order
     start_time = time.time()
     
     print("\nStarting ping checks...")
     print("This may take a while depending on the number of domains.")
+    print("Note: Results will be saved in the same order as your input file.")
     print("-" * 60)
+    
+    # Create indexed domain list for processing
+    indexed_domains = [(i, domain) for i, domain in enumerate(domains)]
     
     # Use ThreadPoolExecutor for concurrent processing
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Submit all tasks
-        future_to_domain = {
-            executor.submit(process_single_domain, domain_url): domain_url 
-            for domain_url in domains
+        future_to_index = {
+            executor.submit(process_single_domain_with_index, indexed_domain): indexed_domain[0] 
+            for indexed_domain in indexed_domains
         }
         
         # Process completed tasks
         completed = 0
-        for future in as_completed(future_to_domain):
-            domain_url = future_to_domain[future]
+        for future in as_completed(future_to_index):
+            original_index = future_to_index[future]
             try:
-                domain, status, ip = future.result()
-                results.append((domain, status, ip))
+                index, domain, status, ip = future.result()
+                results_dict[index] = (domain, status, ip)
                 
                 completed += 1
                 progress = (completed / len(domains)) * 100
@@ -304,13 +309,19 @@ def main():
                 print(f"[{completed:3}/{len(domains)}] ({progress:5.1f}%) {status_color} {domain:<40} -> {status}")
                 
             except Exception as e:
-                print(f"Error processing {domain_url}: {e}")
-                results.append((extract_domain_from_url(domain_url), f'ERROR: {e}', 'Unknown'))
+                print(f"Error processing domain at index {original_index}: {e}")
+                results_dict[original_index] = (domains[original_index], f'ERROR: {e}', 'Unknown')
     
-    # Sort results by status (Active first, then others)
-    results.sort(key=lambda x: (x[1] != 'ACTIVE', x[0]))
+    # Reconstruct results in original order
+    results = []
+    for i in range(len(domains)):
+        if i in results_dict:
+            results.append(results_dict[i])
+        else:
+            # Fallback for any missing results
+            results.append((domains[i], 'ERROR: Processing failed', 'Unknown'))
     
-    # Save results to CSV
+    # Save results to CSV (results are now in original order)
     if save_results_to_csv(results, OUTPUT_FILE):
         print_summary(results)
         
