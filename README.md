@@ -4,7 +4,7 @@ A collection of Python tools for domain and subdomain analysis, status checking,
 
 ## 📋 Available Scripts
 
-### 1. [Subdomain Status Checker](./subdomain_status.md) 🌐
+### 1. [Subdomain Status Checker](./docks/subdomain_status.md) 🌐
 **File:** `Subdomain_status_checker.py`
 
 A Python tool for identifying active subdomains and detecting dangling DNS records.
@@ -24,7 +24,7 @@ python Subdomain_status_checker.py domains.txt
 
 ---
 
-### 2. [Subdomain Ping Checker](./subdomain_ping_check.md) 🏓
+### 2. [Subdomain Ping Checker](./docks/subdomain_ping_check.md) 🏓
 **File:** `Ping_test_on_multiple_websites.py`
 
 A multi-threaded ping utility that tests domain availability and resolves IP addresses.
